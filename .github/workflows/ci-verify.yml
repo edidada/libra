@@ -1,0 +1,35 @@
+name: CI Verify (libra)
+
+on:
+  push:
+    branches: ["ci/gha-verify"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Clone upstream source
+        run: git clone --depth=1 --branch main https://github.com/libra-tools/libra.git source
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: source
+      - name: Build
+        working-directory: source
+        run: cargo build --release --locked
+      - name: Show artifacts
+        working-directory: source
+        run: ls -lh target/release/libra
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libra-binary
+          path: source/target/release/libra
